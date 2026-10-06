@@ -1,5 +1,6 @@
 const userModel = require("../models/user.model.js")
 const jwt = require("jsonwebtoken")
+const emailService = require("../services/email.service.js")
 
 /**
  * 
@@ -27,7 +28,7 @@ async function registerController(req, res){
 
     res.cookie("token", token)
 
-    return res.status(201).json({
+    res.status(201).json({
         message:"User registered successfully",
         status:"success",
         data:{
@@ -35,9 +36,16 @@ async function registerController(req, res){
                 id:user._id,
                 email:user.email,
                 name:user.name
-            }
+            },
+            token
         }
     })
+
+    try {
+        await emailService.sendRegistrationEmail(user.email, user.name)
+    } catch (err) {
+        console.error("Failed to send registration email:", err)
+    }
 }
 
 async function loginController(req, res){
@@ -63,7 +71,7 @@ async function loginController(req, res){
 
     res.cookie("token", token)
 
-    return res.status(200).json({
+    res.status(200).json({
         message:"User logged in successfully",
         status:"success",
         data:{
@@ -74,6 +82,16 @@ async function loginController(req, res){
             }
         }
     })
+
+    try {
+        await emailService.sendLoginEmail(user.email, user.name, {
+            ip: req.ip,
+            userAgent: req.get("user-agent"),
+            time: new Date()
+        })
+    } catch (err) {
+        console.error("Failed to send login email:", err)
+    }
 }
 
     
